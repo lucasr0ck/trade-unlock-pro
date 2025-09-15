@@ -36,11 +36,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      // API call to HomeBroker login
-      const response = await fetch('https://bot-account-manager-api.homebroker.com/v3/login', {
+      const response = await fetch('/api/hb/v3/login', {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic <chave-base64 fornecida>',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -67,8 +65,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Check deposit status after login
         await checkDepositStatus();
         return true;
+      } else {
+        try {
+          const err = await response.json();
+          console.error('Login failed', err);
+        } catch (_) {
+          // ignore json parse
+        }
+        return false;
       }
-      return false;
     } catch (error) {
       console.error('Login error:', error);
       return false;
@@ -92,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user?.access_token) return;
 
     try {
-      const response = await fetch('https://bot-wallet-api.homebroker.com/balance/', {
+      const response = await fetch('/api/hb-wallet/balance/', {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
         }
