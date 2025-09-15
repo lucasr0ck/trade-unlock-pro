@@ -38,6 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      console.log('🔐 Starting login process...');
+      
       // First try via proxy
       let response = await fetch('/api/hb/v3/login', {
         method: 'POST',
@@ -51,14 +53,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
       });
 
+      console.log('📡 Proxy response status:', response.status);
+      console.log('📡 Proxy response headers:', Object.fromEntries(response.headers.entries()));
+
       const contentType = response.headers.get('content-type') || '';
       let data: any = null;
+      
       if (response.ok && contentType.includes('application/json')) {
         data = await response.json();
+        console.log('📡 Proxy response data:', data);
+      } else {
+        console.log('📡 Proxy response not JSON, content-type:', contentType);
+        // Try to read as text to see what we got
+        const textResponse = await response.text();
+        console.log('📡 Proxy response text:', textResponse.substring(0, 200));
       }
 
       // If proxy failed (e.g., HTML page returned or missing tokens), fallback to direct API with Basic
       if (!data?.access_token && HB_BASIC) {
+        console.log('🔄 Falling back to direct API...');
         response = await fetch('https://bot-account-manager-api.homebroker.com/v3/login', {
           method: 'POST',
           headers: {
@@ -67,15 +80,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           },
           body: JSON.stringify({ username, password, role: HB_ROLE })
         });
+        
+        console.log('📡 Direct API response status:', response.status);
+        console.log('📡 Direct API response headers:', Object.fromEntries(response.headers.entries()));
+        
         if (response.ok) {
           const ct = response.headers.get('content-type') || '';
           if (ct.includes('application/json')) {
             data = await response.json();
+            console.log('📡 Direct API response data:', data);
+          } else {
+            console.log('📡 Direct API response not JSON, content-type:', ct);
           }
         }
       }
 
       if (response.ok && data?.access_token) {
+        console.log('✅ Login successful! Creating user...');
         const newUser: User = {
           access_token: data.access_token,
           refresh_token: data.refresh_token,
@@ -90,13 +111,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check deposit status after login
         await checkDepositStatus();
+        console.log('✅ User created and logged in successfully');
         return true;
       } else {
-        try { const err = await response.json(); console.error('Login failed', err); } catch {}
+        console.log('❌ Login failed - Status:', response.status, 'Data:', data);
+        try { 
+          const err = await response.json(); 
+          console.error('❌ Login error response:', err); 
+        } catch (e) {
+          console.error('❌ Could not parse error response');
+        }
         return false;
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       return false;
     }
   };
