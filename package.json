@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "serve": "node server/server.js"
+    "serve": "node server/server.js",
+    "start": "npm run serve",
+    "docker:build": "docker build -t trade-unlock-pro .",
+    "docker:run": "docker run -p 8080:8080 --env-file .env trade-unlock-pro"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
