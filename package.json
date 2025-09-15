@@ -12,7 +12,7 @@
     "serve": "node server/server.js",
     "start": "npm run serve",
     "docker:build": "docker build -t trade-unlock-pro .",
-    "docker:run": "docker run -p 8080:8080 --env-file .env trade-unlock-pro"
+    "docker:run": "docker run -p 80:80 --env-file .env trade-unlock-pro"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

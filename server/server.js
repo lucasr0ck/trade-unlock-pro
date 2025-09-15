@@ -7,7 +7,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 8080;
+// Porta padrão alterada para 80 para uso em produção; ainda pode ser sobrescrita por process.env.PORT
+const port = process.env.PORT || 80;
 
 // Static files
 const __filename = fileURLToPath(import.meta.url);
@@ -64,9 +65,14 @@ app.use('/api/hb-trade', createProxyMiddleware({
   pathRewrite: { '^/api/hb-trade': '' },
 }));
 
-// SPA fallback
-app.use('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+// SPA fallback - usar middleware sem parâmetro de rota para evitar erros do path-to-regexp
+app.use((req, res, next) => {
+  // Apenas servir index.html para requisições GET que aceitam HTML
+  if (req.method === 'GET' && req.headers.accept && req.headers.accept.includes('text/html')) {
+    res.sendFile(path.join(distPath, 'index.html'));
+    return;
+  }
+  next();
 });
 
 app.listen(port, () => {
