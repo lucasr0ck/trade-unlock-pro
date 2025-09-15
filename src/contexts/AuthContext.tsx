@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({
           username,
           password,
-          role: 'hbb'
+          role: import.meta.env.VITE_HB_ROLE || 'hbb'
         })
       });
 
