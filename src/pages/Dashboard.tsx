@@ -6,6 +6,7 @@ import TradingSignal from '@/components/TradingSignal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { fetchAssets } from '@/services/hbApi';
 import { 
   TrendingUp, 
   Zap, 
@@ -22,6 +23,7 @@ const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [signalsUsedToday, setSignalsUsedToday] = useState(0);
   const maxFreeSignals = 3;
+  const [assetsCount, setAssetsCount] = useState<number | null>(null);
 
   // Mock trading signals
   const mockSignals = [
@@ -70,6 +72,19 @@ const Dashboard: React.FC = () => {
     alert('Sinal aplicado!');
   };
 
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        if (!user?.access_token) return;
+        const assets = await fetchAssets(user.access_token);
+        setAssetsCount(assets.count);
+      } catch (e) {
+        // swallow for now
+      }
+    };
+    loadAssets();
+  }, [user?.access_token]);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -101,6 +116,20 @@ const Dashboard: React.FC = () => {
                   <p className="font-bold text-primary">
                     {user?.hasDeposit ? 'VIP Ativo' : 'Demo'}
                   </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="trading-card">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Ativos Disponíveis</p>
+                  <p className="font-bold text-primary">{assetsCount ?? '—'}</p>
                 </div>
               </div>
             </CardContent>
