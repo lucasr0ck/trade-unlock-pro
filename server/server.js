@@ -8,7 +8,11 @@ dotenv.config();
 
 const app = express();
 // Porta padrão (será utilizada pelo container interno). Usar 8080 para evitar necessidade de root ao bindar porta <1024
-const port = process.env.PORT || 8080;
+const portEnv = process.env.PORT;
+if (!portEnv) {
+  console.warn('Warning: process.env.PORT não definido. Usando fallback 8080 para desenvolvimento local. Em produção (EasyPanel) a porta deve ser fornecida via env.');
+}
+const port = portEnv || 8080;
 
 // Static files
 const __filename = fileURLToPath(import.meta.url);
