@@ -65,6 +65,11 @@ app.use('/api/hb-trade', createProxyMiddleware({
   pathRewrite: { '^/api/hb-trade': '' },
 }));
 
+// Health endpoint para EasyPanel
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // SPA fallback - usar middleware sem parâmetro de rota para evitar erros do path-to-regexp
 app.use((req, res, next) => {
   // Apenas servir index.html para requisições GET que aceitam HTML
