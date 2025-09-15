@@ -8,11 +8,12 @@ dotenv.config();
 
 const app = express();
 // Porta padrão (será utilizada pelo container interno). Usar 8080 para evitar necessidade de root ao bindar porta <1024
+// Usar a porta definida pelo ambiente (EasyPanel define process.env.PORT). Mantemos fallback para 3000 em desenvolvimento local, mas imprimimos um aviso se não fornecido.
 const portEnv = process.env.PORT;
 if (!portEnv) {
-  console.warn('Warning: process.env.PORT não definido. Usando fallback 8080 para desenvolvimento local. Em produção (EasyPanel) a porta deve ser fornecida via env.');
+  console.warn('Warning: process.env.PORT não definido. Usando fallback 3000 para desenvolvimento local. Em produção (EasyPanel) a porta deve ser fornecida via env.');
 }
-const port = portEnv || 8080;
+const port = portEnv || 3000;
 
 // Static files
 const __filename = fileURLToPath(import.meta.url);
