@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // If proxy failed (e.g., HTML page returned or missing tokens), fallback to direct API with Basic
-      if (!data?.access_token && HB_BASIC) {
+      if ((!data?.access_token || contentType.includes('text/html')) && HB_BASIC) {
         console.log('🔄 Falling back to direct API...');
         response = await fetch('https://bot-account-manager-api.homebroker.com/v3/login', {
           method: 'POST',
