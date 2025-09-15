@@ -33,10 +33,13 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const HB_BASIC = (import.meta as any).env?.VITE_HB_BASIC_AUTH || '';
+  const HB_ROLE = (import.meta as any).env?.VITE_HB_ROLE || 'hbb';
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/hb/v3/login', {
+      // First try via proxy
+      let response = await fetch('/api/hb/v3/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,12 +47,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({
           username,
           password,
-          role: import.meta.env.VITE_HB_ROLE || 'hbb'
+          role: HB_ROLE
         })
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let data: any = null;
+      if (response.ok && contentType.includes('application/json')) {
+        data = await response.json();
+      }
+
+      // If proxy failed (e.g., HTML page returned or missing tokens), fallback to direct API with Basic
+      if (!data?.access_token && HB_BASIC) {
+        response = await fetch('https://bot-account-manager-api.homebroker.com/v3/login', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${HB_BASIC}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, password, role: HB_ROLE })
+        });
+        if (response.ok) {
+          const ct = response.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            data = await response.json();
+          }
+        }
+      }
+
+      if (response.ok && data?.access_token) {
         const newUser: User = {
           access_token: data.access_token,
           refresh_token: data.refresh_token,
@@ -66,12 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await checkDepositStatus();
         return true;
       } else {
-        try {
-          const err = await response.json();
-          console.error('Login failed', err);
-        } catch (_) {
-          // ignore json parse
-        }
+        try { const err = await response.json(); console.error('Login failed', err); } catch {}
         return false;
       }
     } catch (error) {
@@ -97,15 +118,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user?.access_token) return;
 
     try {
-      const response = await fetch('/api/hb-wallet/balance/', {
+      // Try proxy first
+      let response = await fetch('/api/hb-wallet/balance/', {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
         }
       });
 
+      let didUpdate = false;
       if (response.ok) {
-        const data = await response.json();
-        updateBalance(data);
+        const ct = response.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const data = await response.json();
+          updateBalance(data as any);
+          didUpdate = true;
+        }
+      }
+
+      // Fallback to direct API if proxy served HTML or failed
+      if (!didUpdate) {
+        response = await fetch('https://bot-wallet-api.homebroker.com/balance/', {
+          headers: {
+            'Authorization': `Bearer ${user.access_token}`,
+          }
+        });
+        if (response.ok) {
+          const ct = response.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            const data = await response.json();
+            updateBalance(data as any);
+          }
+        }
       }
     } catch (error) {
       console.error('Error checking balance:', error);
