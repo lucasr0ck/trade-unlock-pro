@@ -7,8 +7,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-// Porta padrão alterada para 80 para uso em produção; ainda pode ser sobrescrita por process.env.PORT
-const port = process.env.PORT || 80;
+// Porta padrão (será utilizada pelo container interno). Usar 8080 para evitar necessidade de root ao bindar porta <1024
+const port = process.env.PORT || 8080;
 
 // Static files
 const __filename = fileURLToPath(import.meta.url);
