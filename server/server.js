@@ -65,12 +65,10 @@ app.use('/api/hb-trade', createProxyMiddleware({
 }));
 
 // SPA fallback
-app.get('*', (req, res) => {
+app.use('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
-
-

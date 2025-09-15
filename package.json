@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "serve": "node server/server.cjs || node server/server.js",
+    "serve": "node server/server.js",
     "start": "npm run serve",
     "docker:build": "docker build -t trade-unlock-pro .",
     "docker:run": "docker run -p 8080:8080 --env-file .env trade-unlock-pro"
