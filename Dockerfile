@@ -24,9 +24,10 @@ COPY package*.json ./
 ENV NODE_ENV=production
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
-# Copy the build output and the Express server
+# Copy the build output, server and start script
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
+COPY --from=builder /app/start.sh ./start.sh
 
 # Allow the non-root user to bind to privileged ports (needed for port 80)
 RUN apk add --no-cache libcap && setcap 'cap_net_bind_service=+ep' /usr/local/bin/node
@@ -34,7 +35,11 @@ RUN apk add --no-cache libcap && setcap 'cap_net_bind_service=+ep' /usr/local/bi
 # Create and use an unprivileged user for runtime
 RUN addgroup -g 1001 -S nodejs \
   && adduser -S nextjs -u 1001
-RUN chown -R nextjs:nodejs /app
+
+# Set permissions and ownership
+RUN chmod +x start.sh && \
+    chown -R nextjs:nodejs /app
+
 USER nextjs
 
 # EasyPanel expects the application on port 80 by default
@@ -45,9 +50,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:80/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Copiar e configurar o script de inicialização
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
-
 # Executar o script de inicialização
-CMD ["/app/start.sh"]
+CMD ["./start.sh"]
