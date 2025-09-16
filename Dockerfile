@@ -49,5 +49,9 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:80/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Run the Express server directly for a leaner start command
-CMD ["node", "server/server.js"]
+# Copiar e configurar o script de inicialização
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Executar o script de inicialização
+CMD ["/app/start.sh"]
