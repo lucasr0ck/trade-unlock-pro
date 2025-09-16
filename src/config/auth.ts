@@ -4,13 +4,19 @@ export const API_CREDENTIALS = {
   ROLE: 'hbb'
 };
 
-// Basic auth token (base64 encoded) - base64(login_app:password_app)
-export const BASIC_AUTH = 'bWluZHNsdGRhQGdtYWlsLmNvbTo1NF1bRGNvJUR4MHs=';
+// App credentials for API authentication (Basic Auth)
+export const APP_CREDENTIALS = {
+  username: 'login_app',
+  password: 'password_app'
+};
 
-// Default credentials for auto-login
+// Basic auth token (base64 encoded from APP_CREDENTIALS)
+export const BASIC_AUTH = btoa(`${APP_CREDENTIALS.username}:${APP_CREDENTIALS.password}`);
+
+// Default user credentials for auto-login
 export const DEFAULT_CREDENTIALS = {
-  username: 'mindsltda@gmail.com',
-  password: '54][Dco%Dx0{',
+  username: 'trading_user@example.com', // Substitua pelo usuário real
+  password: 'trading_password', // Substitua pela senha real
 };
 
 // API Base URLs

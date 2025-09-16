@@ -60,66 +60,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: '****'
       });
 
-      // Fazer login diretamente na API da HB
+      // Login simples e direto como no Insomnia
       const response = await fetch('https://bot-account-manager-api.homebroker.com/v3/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
+          'Authorization': `Basic ${BASIC_AUTH}`
         },
-        body: JSON.stringify(loginPayload)
+        body: JSON.stringify({
+          username: username || DEFAULT_CREDENTIALS.username,
+          password: password || DEFAULT_CREDENTIALS.password,
+          role: 'hbb'
+        })
       });
 
       console.log('📡 Response status:', response.status);
       
-      let responseText;
-      try {
-        // Primeiro, vamos obter o texto da resposta
-        responseText = await response.text();
-        
-        // Tentar fazer o parse do JSON apenas se houver conteúdo
-        if (responseText) {
-          try {
-            const data = JSON.parse(responseText);
-            console.log('📡 Response data:', {
-              ...data,
-              access_token: data.access_token ? '****' : null,
-              refresh_token: data.refresh_token ? '****' : null
-            });
-
-            if (response.ok && data?.access_token) {
-              console.log('✅ Login successful!');
-              const newUser: User = {
-                access_token: data.access_token,
-                refresh_token: data.refresh_token,
-                cognito_id: data.cognito_id,
-                username: loginPayload.username,
-                hasDeposit: false,
-                balance: { real: 0, demo: 10000 }
-              };
-              
-              setUser(newUser);
-              localStorage.setItem('ux_trading_user', JSON.stringify(newUser));
-              
-              // Check deposit status after login
-              await checkDepositStatus();
-              return true;
-            }
-          } catch (parseError) {
-            console.error('❌ Failed to parse response:', parseError);
-            console.log('📡 Raw response:', responseText);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Failed to read response:', error);
+      // Tratamento simples da resposta
+      if (!response.ok) {
+        console.error('❌ Login failed:', response.status);
+        return false;
       }
 
-      if (response.status === 504) {
-        console.error('❌ Login failed: Gateway Timeout');
-      } else {
-        console.error('❌ Login failed:', response.status, responseText || 'No response body');
+      const data = await response.json();
+      
+      if (!data?.access_token) {
+        console.error('❌ Login failed: No access token received');
+        return false;
       }
-      return false;
+
+      console.log('✅ Login successful!');
+      
+      const newUser: User = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        cognito_id: data.cognito_id,
+        username: username || DEFAULT_CREDENTIALS.username,
+        hasDeposit: false,
+        balance: { real: 0, demo: 10000 }
+      };
+      
+      setUser(newUser);
+      localStorage.setItem('ux_trading_user', JSON.stringify(newUser));
+      
+      // Check deposit status after login
+      await checkDepositStatus();
+      return true;
     } catch (error) {
       console.error('❌ Login error:', error);
       return false;
@@ -176,18 +162,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           
           if (!response.ok) {
-            console.log('🔄 Token expired, attempting re-auth...');
-            await login();
+            console.log('🔄 Token expirado, faça login novamente');
+            setUser(null);
+            localStorage.removeItem('ux_trading_user');
           } else {
             await checkDepositStatus();
           }
-        } else {
-          // No stored user, try auto-login
-          await login();
         }
       } catch (error) {
         console.error('❌ Auth initialization error:', error);
-        await login();
+        setUser(null);
+        localStorage.removeItem('ux_trading_user');
       } finally {
         setIsInitialized(true);
       }
