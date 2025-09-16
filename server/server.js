@@ -37,27 +37,71 @@ if (!distPath) {
 }
 app.use(express.static(distPath));
 
+// Configuração do proxy
+const proxyOptions = {
+  auth: {
+    target: 'https://bot-account-manager-api.homebroker.com',
+    auth: process.env.HB_BASIC_AUTH || process.env.VITE_HB_BASIC_AUTH || 'bWluZHNsdGRhQGdtYWlsLmNvbTo1NF1bRGNvJUR4MHs='
+  }
+};
+
+// Parse JSON bodies
+app.use(express.json());
+
 // Proxies
 app.use('/api/hb', createProxyMiddleware({
-  target: 'https://bot-account-manager-api.homebroker.com',
+  target: proxyOptions.auth.target,
   changeOrigin: true,
   pathRewrite: { '^/api/hb': '' },
   onProxyReq: (proxyReq, req, res) => {
-    // Adicionar Basic Auth
-    const basic = process.env.HB_BASIC_AUTH || process.env.VITE_HB_BASIC_AUTH || 'bWluZHNsdGRhQGdtYWlsLmNvbTo1NF1bRGNvJUR4MHs=';
-    proxyReq.setHeader('Authorization', `Basic ${basic}`);
-
-    // Log da requisição
-    console.log(`🔄 Proxy request to ${proxyReq.path}`);
+    // Adicionar Basic Auth obrigatório para a API
+    proxyReq.setHeader('Authorization', `Basic ${proxyOptions.auth.auth}`);
+    
+    // Garantir que o Content-Type esteja correto
+    proxyReq.setHeader('Content-Type', 'application/json');
+    
+    // Se houver corpo na requisição, reescrever corretamente
     if (req.body) {
       const bodyData = JSON.stringify(req.body);
+      proxyReq.setHeader('Content-Type', 'application/json');
       proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+      
+      console.log('📤 Proxy request body:', {
+        ...req.body,
+        password: req.body.password ? '****' : undefined
+      });
+      
+      // Importante: É necessário terminar a escrita do corpo
       proxyReq.write(bodyData);
+      proxyReq.end();
     }
+    
+    console.log(`🔄 Proxy request to ${proxyReq.path} [${proxyReq.method}]`);
+    console.log('🔑 Headers:', {
+      ...Object.fromEntries(proxyReq.getHeaders()),
+      Authorization: 'Basic ****'
+    });
   },
   onProxyRes: (proxyRes, req, res) => {
-    // Log da resposta
+    // Log detalhado da resposta
     console.log(`📡 Proxy response from ${req.path}: ${proxyRes.statusCode}`);
+    console.log('📝 Response headers:', proxyRes.headers);
+    
+    // Se houver erro, logar o corpo da resposta
+    if (proxyRes.statusCode >= 400) {
+      let responseBody = '';
+      proxyRes.on('data', function(chunk) {
+        responseBody += chunk;
+      });
+      proxyRes.on('end', function() {
+        try {
+          const parsed = JSON.parse(responseBody);
+          console.log('❌ Error response:', parsed);
+        } catch (e) {
+          console.log('❌ Error response (raw):', responseBody);
+        }
+      });
+    }
   },
 }));
 
