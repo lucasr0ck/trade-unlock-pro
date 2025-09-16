@@ -14,6 +14,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Garantir que o index.html esteja no local correto
+COPY index.html ./index.html
+
 # Build the application
 RUN npm run build
 
