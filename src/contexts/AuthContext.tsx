@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_URLS } from '@/config/auth';
+import { API_URLS, BASIC_AUTH } from '@/config/auth';
 
 // Default login credentials
 const DEFAULT_CREDENTIALS = {
@@ -60,11 +60,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: '****'
       });
 
-      // Fazer login através do proxy para evitar CORS
-      const response = await fetch('/api/hb/v3/login', {
+      // Fazer login usando a URL base da API de autenticação
+      const response = await fetch(`${API_URLS.auth}/v3/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${BASIC_AUTH}` // Adicionar Basic Auth conforme documentação
         },
         body: JSON.stringify(loginPayload)
       });
@@ -142,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user?.access_token) return;
 
     try {
-      const response = await fetch('/api/hb-wallet/balance/', {
+      const response = await fetch(`${API_URLS.wallet}/balance/`, {
         headers: {
           'Authorization': `Bearer ${user.access_token}`
         }
@@ -168,7 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(parsedUser);
           
           // Verify token validity
-          const response = await fetch('/api/hb-user/users/read-user', {
+          const response = await fetch(`${API_URLS.user}/users/read-user`, {
             headers: {
               'Authorization': `Bearer ${parsedUser.access_token}`
             }
