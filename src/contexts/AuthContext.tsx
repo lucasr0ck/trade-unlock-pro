@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { BASIC_AUTH, AUTH_CREDENTIALS, API_URLS } from '@/config/auth';
+import { API_URLS, BASIC_AUTH } from '@/config/auth';
+
+// Default login credentials
+const DEFAULT_CREDENTIALS = {
+  username: 'mindsltda@gmail.com',
+  password: '54][Dco%Dx0{',
+  role: 'hbb'
+};
 
 interface User {
   access_token: string;
@@ -41,12 +48,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🔐 Starting login process...');
       
-      // Enviar as credenciais corretas para a API
-      const credentials = {
-        username: username || AUTH_CREDENTIALS.username,
-        password: password || AUTH_CREDENTIALS.password,
-        role: AUTH_CREDENTIALS.role
+      // Preparar o payload conforme a documentação
+      const loginPayload = {
+        username: username || DEFAULT_CREDENTIALS.username,
+        password: password || DEFAULT_CREDENTIALS.password,
+        role: DEFAULT_CREDENTIALS.role
       };
+
+      console.log('📦 Login payload:', {
+        ...loginPayload,
+        password: '****'
+      });
 
       // Tentar autenticação direta primeiro
       let response = await fetch(`${API_URLS.auth}/v3/login`, {
@@ -54,50 +66,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: {
           'Authorization': `Basic ${BASIC_AUTH}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(credentials)
+        body: JSON.stringify(loginPayload)
       });
 
       console.log('📡 API response status:', response.status);
+      console.log('📡 API response headers:', Object.fromEntries(response.headers.entries()));
       
       const contentType = response.headers.get('content-type') || '';
       let data: any = null;
       
       if (response.ok && contentType.includes('application/json')) {
         data = await response.json();
-        console.log('📡 API response data:', data);
+        console.log('📡 API response data:', {
+          ...data,
+          access_token: data.access_token ? '****' : null,
+          refresh_token: data.refresh_token ? '****' : null
+        });
       } else {
+        // Se a resposta não for JSON, tentar ler como texto para debug
+        const textResponse = await response.text();
+        console.log('📡 API response text:', textResponse.substring(0, 200));
+
         // Fallback para proxy local se a API direta falhar
         console.log('🔄 Falling back to proxy...');
         response = await fetch('/api/hb/v3/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
-          body: JSON.stringify(credentials)
+          body: JSON.stringify(loginPayload)
         });
         
-        console.log('📡 Direct API response status:', response.status);
-        console.log('📡 Direct API response headers:', Object.fromEntries(response.headers.entries()));
+        console.log('📡 Proxy response status:', response.status);
+        console.log('📡 Proxy response headers:', Object.fromEntries(response.headers.entries()));
         
         if (response.ok) {
-          const ct = response.headers.get('content-type') || '';
-          if (ct.includes('application/json')) {
+          try {
             data = await response.json();
-            console.log('📡 Direct API response data:', data);
-          } else {
-            console.log('📡 Direct API response not JSON, content-type:', ct);
+            console.log('📡 Proxy response data:', {
+              ...data,
+              access_token: data.access_token ? '****' : null,
+              refresh_token: data.refresh_token ? '****' : null
+            });
+          } catch (e) {
+            console.error('❌ Failed to parse proxy response:', e);
+            const textResponse = await response.text();
+            console.log('📡 Proxy response text:', textResponse.substring(0, 200));
           }
         }
       }
 
       if (response.ok && data?.access_token) {
-        console.log('✅ Login successful! Creating user...');
+        console.log('✅ Login successful!');
         const newUser: User = {
           access_token: data.access_token,
           refresh_token: data.refresh_token,
           cognito_id: data.cognito_id,
-          username,
+          username: loginPayload.username,
           hasDeposit: false,
           balance: { real: 0, demo: 10000 }
         };
@@ -107,15 +135,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check deposit status after login
         await checkDepositStatus();
-        console.log('✅ User created and logged in successfully');
         return true;
       } else {
-        console.log('❌ Login failed - Status:', response.status, 'Data:', data);
-        try { 
-          const err = await response.json(); 
-          console.error('❌ Login error response:', err); 
-        } catch (e) {
-          console.error('❌ Could not parse error response');
+        console.log('❌ Login failed - Status:', response.status);
+        if (data) {
+          console.error('❌ Error response:', data);
         }
         return false;
       }
@@ -142,37 +166,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user?.access_token) return;
 
     try {
-      // Try proxy first
-      let response = await fetch('/api/hb-wallet/balance/', {
+      const response = await fetch(`${API_URLS.wallet}/balance/`, {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
+          'Accept': 'application/json'
         }
       });
 
-      let didUpdate = false;
       if (response.ok) {
-        const ct = response.headers.get('content-type') || '';
-        if (ct.includes('application/json')) {
-          const data = await response.json();
-          updateBalance(data as any);
-          didUpdate = true;
-        }
-      }
-
-      // Fallback to direct API if proxy served HTML or failed
-      if (!didUpdate) {
-        response = await fetch('https://bot-wallet-api.homebroker.com/balance/', {
-          headers: {
-            'Authorization': `Bearer ${user.access_token}`,
-          }
-        });
-        if (response.ok) {
-          const ct = response.headers.get('content-type') || '';
-          if (ct.includes('application/json')) {
-            const data = await response.json();
-            updateBalance(data as any);
-          }
-        }
+        const data = await response.json();
+        updateBalance(data);
       }
     } catch (error) {
       console.error('Error checking balance:', error);
@@ -193,23 +196,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const response = await fetch(`${API_URLS.user}/users/read-user`, {
             headers: {
               'Authorization': `Bearer ${parsedUser.access_token}`,
+              'Accept': 'application/json'
             }
           });
           
           if (!response.ok) {
             // Token inválido, tentar fazer login novamente
             console.log('🔄 Token expirado, tentando re-autenticar...');
-            await login(AUTH_CREDENTIALS.username, AUTH_CREDENTIALS.password);
+            await login(DEFAULT_CREDENTIALS.username, DEFAULT_CREDENTIALS.password);
           } else {
             await checkDepositStatus();
           }
         } catch (error) {
           console.error('❌ Erro ao verificar token:', error);
-          await login(AUTH_CREDENTIALS.username, AUTH_CREDENTIALS.password);
+          await login(DEFAULT_CREDENTIALS.username, DEFAULT_CREDENTIALS.password);
         }
       } else {
         // Sem usuário armazenado, tentar login automático
-        await login(AUTH_CREDENTIALS.username, AUTH_CREDENTIALS.password);
+        await login(DEFAULT_CREDENTIALS.username, DEFAULT_CREDENTIALS.password);
       }
       
       setIsInitialized(true);

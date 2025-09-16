@@ -1,12 +1,17 @@
-// Credenciais de autenticação
-export const AUTH_CREDENTIALS = {
-  username: 'mindsltda@gmail.com',
-  password: '54][Dco%Dx0{',
-  role: 'hbb'
+// API Credentials
+export const API_CREDENTIALS = {
+  LOGIN_ENDPOINT: '/v3/login',
+  ROLE: 'hbb'
 };
 
-// Basic auth token (base64 encoded)
+// Basic auth token (base64 encoded) - base64(login_app:password_app)
 export const BASIC_AUTH = 'bWluZHNsdGRhQGdtYWlsLmNvbTo1NF1bRGNvJUR4MHs=';
+
+// Default credentials for auto-login
+export const DEFAULT_CREDENTIALS = {
+  username: 'mindsltda@gmail.com',
+  password: '54][Dco%Dx0{',
+};
 
 // API Base URLs
 export const API_URLS = {
