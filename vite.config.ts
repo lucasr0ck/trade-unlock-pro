@@ -8,7 +8,11 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    root: process.cwd(),
+    root: '.',
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets'
+    },
     server: {
       host: "::",
       port: 8080,

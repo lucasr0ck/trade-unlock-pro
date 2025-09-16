@@ -5,17 +5,13 @@ WORKDIR /app
 
 # Install dependencies required to build the frontend
 COPY package*.json ./
-ENV NODE_ENV=development
 RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Set environment for build
-ENV NODE_ENV=production
-ENV VITE_HB_BASIC_AUTH=''
-
-# Build the application
+# Build the application (sem executar o build durante o postinstall)
+ENV NODE_ENV=development
 RUN npm run build
 
 # Runtime image
@@ -26,7 +22,7 @@ WORKDIR /app
 # Install only runtime dependencies
 COPY package*.json ./
 ENV NODE_ENV=production
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # Copy the build output and the Express server
 COPY --from=builder /app/dist ./dist
