@@ -8,11 +8,12 @@ COPY package*.json ./
 ENV NODE_ENV=development
 RUN npm ci
 
-# Copy source code and run the production build
+# Copy source code
 COPY . .
 
-# Garantir que o index.html esteja no local correto
-COPY index.html ./index.html
+# Set environment for build
+ENV NODE_ENV=production
+ENV VITE_HB_BASIC_AUTH=''
 
 # Build the application
 RUN npm run build
