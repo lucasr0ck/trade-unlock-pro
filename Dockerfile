@@ -28,7 +28,7 @@ COPY package*.json ./
 
 # Install only production dependencies
 ENV NODE_ENV=production
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
