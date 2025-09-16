@@ -18,7 +18,7 @@ WORKDIR /app
 # Copy only production deps
 COPY package*.json ./
 ENV NODE_ENV=production
-RUN npm ci --only=production
+RUN npm ci --only=production --ignore-scripts
 
 # Copy dist and server
 COPY --from=builder /app/dist ./dist
