@@ -14,7 +14,9 @@
     "start:prod": "NODE_ENV=production node server/server.js",
     "docker:build": "docker build -t trade-unlock-pro .",
     "docker:build-prod": "docker build -f Dockerfile.prod -t trade-unlock-pro:prod .",
-    "docker:run": "docker run -p 3000:3000 --env-file .env trade-unlock-pro"
+    "docker:run": "docker run -p 3000:3000 --env-file .env trade-unlock-pro",
+    "prestart": "[ -d dist ] || npm run build",
+    "postinstall": "if [ \"$NODE_ENV\" = \"production\" ]; then npm run build; fi"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
