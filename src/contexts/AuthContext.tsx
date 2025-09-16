@@ -60,10 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       // Login simples e direto como no Insomnia
-      const response = await fetch('/api/hb/v3/login', {
+      const response = await fetch('https://bot-account-manager-api.homebroker.com/v3/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': 'Basic bWluZHNsdGRhQGdtYWlsLmNvbTo1NF1bRGNvJUR4MHs='
         },
         body: JSON.stringify(loginPayload)  // Usa o mesmo payload criado acima
       });
