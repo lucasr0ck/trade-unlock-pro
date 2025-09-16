@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Diretório do projeto
-PROJECT_DIR="/path/to/your/project"
+PROJECT_DIR="/etc/easypanel/projects/ux-jc/front/code"
 
 # URL do trigger
 TRIGGER_URL="http://145.223.126.91:3000/api/deploy/15628f354205cb49d9878a4975060310834507b89d8d0fdc"
