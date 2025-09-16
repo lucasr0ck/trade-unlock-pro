@@ -94,8 +94,7 @@ function buildAuthHeaders(token: string): HeadersInit {
 export async function fetchAssets(token: string): Promise<AssetsResponse> {
   const res = await fetch("/api/hb-config/api/assets/", {
     headers: {
-      ...buildAuthHeaders(token),
-      'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
+      ...buildAuthHeaders(token)
     },
   });
   if (!res.ok) throw new Error(`fetchAssets failed: ${res.status}`);
@@ -114,8 +113,7 @@ export async function fetchChartData(token: string, query: ReadValuesQuery): Pro
   const params = new URLSearchParams(query as unknown as Record<string, string>);
   const res = await fetch(`/api/hb-market/assets/read_values?${params.toString()}`, {
     headers: {
-      ...buildAuthHeaders(token),
-      'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
+      ...buildAuthHeaders(token)
     },
   });
   if (!res.ok) throw new Error(`fetchChartData failed: ${res.status}`);
@@ -125,8 +123,7 @@ export async function fetchChartData(token: string, query: ReadValuesQuery): Pro
 export async function fetchUserData(token: string): Promise<UserDataResponse> {
   const res = await fetch("/api/hb-user/users/read-user", {
     headers: {
-      ...buildAuthHeaders(token),
-      'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
+      ...buildAuthHeaders(token)
     },
   });
   if (!res.ok) throw new Error(`fetchUserData failed: ${res.status}`);
@@ -136,8 +133,7 @@ export async function fetchUserData(token: string): Promise<UserDataResponse> {
 export async function fetchBalance(token: string): Promise<BalanceResponse> {
   const res = await fetch("/api/hb-wallet/balance/", {
     headers: {
-      ...buildAuthHeaders(token),
-      'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
+      ...buildAuthHeaders(token)
     },
   });
   if (!res.ok) throw new Error(`fetchBalance failed: ${res.status}`);
@@ -149,8 +145,7 @@ export async function createOperation(token: string, payload: CreateOperationReq
     method: "POST",
     headers: {
       ...buildAuthHeaders(token),
-      "Content-Type": "application/json",
-      'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
+      "Content-Type": "application/json"
     },
     body: JSON.stringify(payload),
   });
@@ -161,8 +156,7 @@ export async function createOperation(token: string, payload: CreateOperationReq
 export async function getOperation(token: string, opId: string): Promise<OperationDataResponse> {
   const res = await fetch(`/api/hb-trade/op/get/${encodeURIComponent(opId)}`, {
     headers: {
-      ...buildAuthHeaders(token),
-      'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
+      ...buildAuthHeaders(token)
     },
   });
   if (!res.ok) throw new Error(`getOperation failed: ${res.status}`);
