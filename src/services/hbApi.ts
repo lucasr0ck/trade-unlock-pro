@@ -92,7 +92,7 @@ function buildAuthHeaders(token: string): HeadersInit {
 }
 
 export async function fetchAssets(token: string): Promise<AssetsResponse> {
-  const res = await fetch("https://bot-configuration-api.homebroker.com/api/assets/", {
+  const res = await fetch("/api/hb-config/api/assets/", {
     headers: {
       ...buildAuthHeaders(token),
       'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
@@ -112,7 +112,7 @@ export interface ReadValuesQuery {
 
 export async function fetchChartData(token: string, query: ReadValuesQuery): Promise<ChartResponse> {
   const params = new URLSearchParams(query as unknown as Record<string, string>);
-  const res = await fetch(`https://bot-market-historic-api.homebroker.com/assets/read_values?${params.toString()}`, {
+  const res = await fetch(`/api/hb-market/assets/read_values?${params.toString()}`, {
     headers: {
       ...buildAuthHeaders(token),
       'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
@@ -123,7 +123,7 @@ export async function fetchChartData(token: string, query: ReadValuesQuery): Pro
 }
 
 export async function fetchUserData(token: string): Promise<UserDataResponse> {
-  const res = await fetch("https://bot-user-api.homebroker.com/users/read-user", {
+  const res = await fetch("/api/hb-user/users/read-user", {
     headers: {
       ...buildAuthHeaders(token),
       'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
@@ -134,7 +134,7 @@ export async function fetchUserData(token: string): Promise<UserDataResponse> {
 }
 
 export async function fetchBalance(token: string): Promise<BalanceResponse> {
-  const res = await fetch("https://bot-wallet-api.homebroker.com/balance/", {
+  const res = await fetch("/api/hb-wallet/balance/", {
     headers: {
       ...buildAuthHeaders(token),
       'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
@@ -145,7 +145,7 @@ export async function fetchBalance(token: string): Promise<BalanceResponse> {
 }
 
 export async function createOperation(token: string, payload: CreateOperationRequest): Promise<CreateOperationResponse> {
-  const res = await fetch("https://trade-api-edge.homebroker.com/op/", {
+  const res = await fetch("/api/hb-trade-edge/op/", {
     method: "POST",
     headers: {
       ...buildAuthHeaders(token),
@@ -159,7 +159,7 @@ export async function createOperation(token: string, payload: CreateOperationReq
 }
 
 export async function getOperation(token: string, opId: string): Promise<OperationDataResponse> {
-  const res = await fetch(`https://bot-trade-api.homebroker.com/op/get/${encodeURIComponent(opId)}`, {
+  const res = await fetch(`/api/hb-trade/op/get/${encodeURIComponent(opId)}`, {
     headers: {
       ...buildAuthHeaders(token),
       'Origin': 'https://ux-jc-front.uguzam.easypanel.host'

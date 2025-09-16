@@ -112,36 +112,60 @@ app.use('/api/hb-wallet', createProxyMiddleware({
   target: 'https://bot-wallet-api.homebroker.com',
   changeOrigin: true,
   pathRewrite: { '^/api/hb-wallet': '' },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Authorization', `Basic ${proxyOptions.auth.auth}`);
+    proxyReq.setHeader('Accept', 'application/json');
+  }
 }));
 
 app.use('/api/hb-config', createProxyMiddleware({
   target: 'https://bot-configuration-api.homebroker.com',
   changeOrigin: true,
   pathRewrite: { '^/api/hb-config': '' },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Authorization', `Basic ${proxyOptions.auth.auth}`);
+    proxyReq.setHeader('Accept', 'application/json');
+  }
 }));
 
 app.use('/api/hb-market', createProxyMiddleware({
   target: 'https://bot-market-historic-api.homebroker.com',
   changeOrigin: true,
   pathRewrite: { '^/api/hb-market': '' },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Authorization', `Basic ${proxyOptions.auth.auth}`);
+    proxyReq.setHeader('Accept', 'application/json');
+  }
 }));
 
 app.use('/api/hb-user', createProxyMiddleware({
   target: 'https://bot-user-api.homebroker.com',
   changeOrigin: true,
   pathRewrite: { '^/api/hb-user': '' },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Authorization', `Basic ${proxyOptions.auth.auth}`);
+    proxyReq.setHeader('Accept', 'application/json');
+  }
 }));
 
 app.use('/api/hb-trade-edge', createProxyMiddleware({
   target: 'https://trade-api-edge.homebroker.com',
   changeOrigin: true,
   pathRewrite: { '^/api/hb-trade-edge': '' },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Authorization', `Basic ${proxyOptions.auth.auth}`);
+    proxyReq.setHeader('Accept', 'application/json');
+  }
 }));
 
 app.use('/api/hb-trade', createProxyMiddleware({
   target: 'https://bot-trade-api.homebroker.com',
   changeOrigin: true,
   pathRewrite: { '^/api/hb-trade': '' },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('Authorization', `Basic ${proxyOptions.auth.auth}`);
+    proxyReq.setHeader('Accept', 'application/json');
+  }
 }));
 
 // Health endpoint para EasyPanel
