@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 import SignupModal from '@/components/SignupModal';
-import { TrendingUp, Lock, User, ExternalLink } from 'lucide-react';
+import { TrendingUp, Lock, User, ExternalLink, Eye, EyeOff } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -15,6 +15,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -95,13 +96,30 @@ const Login: React.FC = () => {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Digite sua senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 pr-10"
                     required
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    )}
+                    <span className="sr-only">
+                      {showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    </span>
+                  </Button>
                 </div>
               </div>
 
