@@ -17,18 +17,19 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Prune dev dependencies to keep only production ones for the next stage
+RUN npm prune --omit=dev
+
 # Production stage
 FROM node:18-alpine AS production
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy production node_modules from builder (already pruned)
+COPY --from=builder /app/node_modules ./node_modules
 COPY package*.json ./
-
-# Install only production dependencies
 ENV NODE_ENV=production
-RUN npm ci --only=production && npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
