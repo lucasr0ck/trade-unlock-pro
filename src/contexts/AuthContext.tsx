@@ -4,8 +4,7 @@ import { API_URLS, BASIC_AUTH } from '@/config/auth';
 // Default login credentials
 const DEFAULT_CREDENTIALS = {
   username: 'mindsltda@gmail.com',
-  password: '54][Dco%Dx0{',
-  role: 'hbb'
+  password: '54][Dco%Dx0{'
 };
 
 interface User {
@@ -48,11 +47,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🔐 Starting login process...');
       
-      // Preparar o payload conforme a documentação
+      // Preparar o payload exatamente como a documentação da HB
       const loginPayload = {
         username: username || DEFAULT_CREDENTIALS.username,
         password: password || DEFAULT_CREDENTIALS.password,
-        role: DEFAULT_CREDENTIALS.role
+        role: "hbb"  // Valor fixo conforme documentação
       };
 
       console.log('📦 Login payload:', {
@@ -67,11 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           'Content-Type': 'application/json',
           'Authorization': `Basic ${BASIC_AUTH}`
         },
-        body: JSON.stringify({
-          username: username || DEFAULT_CREDENTIALS.username,
-          password: password || DEFAULT_CREDENTIALS.password,
-          role: 'hbb'
-        })
+        body: JSON.stringify(loginPayload)  // Usa o mesmo payload criado acima
       });
 
       console.log('📡 Response status:', response.status);
