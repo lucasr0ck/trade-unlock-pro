@@ -71,39 +71,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('📡 Response status:', response.status);
       
+      let responseText;
       try {
-        const data = await response.json();
-        console.log('📡 Response data:', {
-          ...data,
-          access_token: data.access_token ? '****' : null,
-          refresh_token: data.refresh_token ? '****' : null
-        });
+        // Primeiro, vamos obter o texto da resposta
+        responseText = await response.text();
+        
+        // Tentar fazer o parse do JSON apenas se houver conteúdo
+        if (responseText) {
+          try {
+            const data = JSON.parse(responseText);
+            console.log('📡 Response data:', {
+              ...data,
+              access_token: data.access_token ? '****' : null,
+              refresh_token: data.refresh_token ? '****' : null
+            });
 
-        if (response.ok && data?.access_token) {
-          console.log('✅ Login successful!');
-          const newUser: User = {
-            access_token: data.access_token,
-            refresh_token: data.refresh_token,
-            cognito_id: data.cognito_id,
-            username: loginPayload.username,
-            hasDeposit: false,
-            balance: { real: 0, demo: 10000 }
-          };
-          
-          setUser(newUser);
-          localStorage.setItem('ux_trading_user', JSON.stringify(newUser));
-          
-          // Check deposit status after login
-          await checkDepositStatus();
-          return true;
+            if (response.ok && data?.access_token) {
+              console.log('✅ Login successful!');
+              const newUser: User = {
+                access_token: data.access_token,
+                refresh_token: data.refresh_token,
+                cognito_id: data.cognito_id,
+                username: loginPayload.username,
+                hasDeposit: false,
+                balance: { real: 0, demo: 10000 }
+              };
+              
+              setUser(newUser);
+              localStorage.setItem('ux_trading_user', JSON.stringify(newUser));
+              
+              // Check deposit status after login
+              await checkDepositStatus();
+              return true;
+            }
+          } catch (parseError) {
+            console.error('❌ Failed to parse response:', parseError);
+            console.log('📡 Raw response:', responseText);
+          }
         }
-      } catch (parseError) {
-        console.error('❌ Failed to parse response:', parseError);
-        const textResponse = await response.text();
-        console.log('📡 Response text:', textResponse.substring(0, 200));
+      } catch (error) {
+        console.error('❌ Failed to read response:', error);
       }
 
-      console.log('❌ Login failed');
+      if (response.status === 504) {
+        console.error('❌ Login failed: Gateway Timeout');
+      } else {
+        console.error('❌ Login failed:', response.status, responseText || 'No response body');
+      }
       return false;
     } catch (error) {
       console.error('❌ Login error:', error);

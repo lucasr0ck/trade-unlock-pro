@@ -53,12 +53,15 @@ app.use('/api/hb', createProxyMiddleware({
   target: proxyOptions.auth.target,
   changeOrigin: true,
   pathRewrite: { '^/api/hb': '' },
+  timeout: 30000, // 30 segundos de timeout
+  proxyTimeout: 30000,
   onProxyReq: (proxyReq, req, res) => {
     // Adicionar Basic Auth obrigatório para a API
     proxyReq.setHeader('Authorization', `Basic ${proxyOptions.auth.auth}`);
     
     // Garantir que o Content-Type esteja correto
     proxyReq.setHeader('Content-Type', 'application/json');
+    proxyReq.setHeader('Accept', 'application/json');
     
     // Se houver corpo na requisição, reescrever corretamente
     if (req.body) {
