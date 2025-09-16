@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import dotenv from 'dotenv';
+import fs from 'fs';
 dotenv.config();
 
 const app = express();
@@ -18,7 +19,22 @@ const port = portEnv || 3000;
 // Static files
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const distPath = path.join(__dirname, '..', 'dist');
+
+// Caminhos possíveis para a build 'dist' (suporte a diferentes working dirs: /app, /code, etc.)
+const possibleDistPaths = [
+  path.join(__dirname, '..', 'dist'), // usual: server in /app/server -> dist in /app/dist
+  path.join(process.cwd(), 'dist'),   // painel pode usar /code como workdir
+  path.join(__dirname, 'dist'),       // caso dist esteja dentro do mesmo diretório
+];
+
+let distPath = possibleDistPaths.find(p => fs.existsSync(p));
+if (!distPath) {
+  console.error('ERROR: pasta dist não encontrada. Verifique se o build foi executado e onde o diretório dist foi gerado. Procurados:', possibleDistPaths);
+  // fallback para o primeiro caminho (vai lançar ENOENT ao tentar servir, mas com log claro)
+  distPath = possibleDistPaths[0];
+} else {
+  console.log('Using dist path:', distPath);
+}
 app.use(express.static(distPath));
 
 // Proxies
