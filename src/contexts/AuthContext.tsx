@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { BASIC_AUTH, AUTH_CREDENTIALS, API_URLS } from '@/config/auth';
 
 interface User {
   access_token: string;
@@ -15,6 +16,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isInitialized: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateBalance: (balance: { real: number; demo: number }) => void;
@@ -33,52 +35,46 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const HB_BASIC = (import.meta as any).env?.VITE_HB_BASIC_AUTH || '';
-  const HB_ROLE = (import.meta as any).env?.VITE_HB_ROLE || 'hbb';
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       console.log('🔐 Starting login process...');
       
-      // First try via proxy
-      let response = await fetch('/api/hb/v3/login', {
+      // Enviar as credenciais corretas para a API
+      const credentials = {
+        username: username || AUTH_CREDENTIALS.username,
+        password: password || AUTH_CREDENTIALS.password,
+        role: AUTH_CREDENTIALS.role
+      };
+
+      // Tentar autenticação direta primeiro
+      let response = await fetch(`${API_URLS.auth}/v3/login`, {
         method: 'POST',
         headers: {
+          'Authorization': `Basic ${BASIC_AUTH}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          username,
-          password,
-          role: HB_ROLE
-        })
+        body: JSON.stringify(credentials)
       });
 
-      console.log('📡 Proxy response status:', response.status);
-      console.log('📡 Proxy response headers:', Object.fromEntries(response.headers.entries()));
-
+      console.log('📡 API response status:', response.status);
+      
       const contentType = response.headers.get('content-type') || '';
       let data: any = null;
       
       if (response.ok && contentType.includes('application/json')) {
         data = await response.json();
-        console.log('📡 Proxy response data:', data);
+        console.log('📡 API response data:', data);
       } else {
-        console.log('📡 Proxy response not JSON, content-type:', contentType);
-        // Try to read as text to see what we got
-        const textResponse = await response.text();
-        console.log('📡 Proxy response text:', textResponse.substring(0, 200));
-      }
-
-      // If proxy failed (e.g., HTML page returned or missing tokens), fallback to direct API with Basic
-      if ((!data?.access_token || contentType.includes('text/html')) && HB_BASIC) {
-        console.log('🔄 Falling back to direct API...');
-        response = await fetch('https://bot-account-manager-api.homebroker.com/v3/login', {
+        // Fallback para proxy local se a API direta falhar
+        console.log('🔄 Falling back to proxy...');
+        response = await fetch('/api/hb/v3/login', {
           method: 'POST',
           headers: {
-            'Authorization': `Basic ${HB_BASIC}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ username, password, role: HB_ROLE })
+          body: JSON.stringify(credentials)
         });
         
         console.log('📡 Direct API response status:', response.status);
@@ -183,17 +179,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Check for stored user on app start
+  // Check for stored user on app start and try auto-login if needed
   useEffect(() => {
-    const storedUser = localStorage.getItem('ux_trading_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const initializeAuth = async () => {
+      const storedUser = localStorage.getItem('ux_trading_user');
+      
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        
+        // Verificar se o token ainda é válido
+        try {
+          const response = await fetch(`${API_URLS.user}/users/read-user`, {
+            headers: {
+              'Authorization': `Bearer ${parsedUser.access_token}`,
+            }
+          });
+          
+          if (!response.ok) {
+            // Token inválido, tentar fazer login novamente
+            console.log('🔄 Token expirado, tentando re-autenticar...');
+            await login(AUTH_CREDENTIALS.username, AUTH_CREDENTIALS.password);
+          } else {
+            await checkDepositStatus();
+          }
+        } catch (error) {
+          console.error('❌ Erro ao verificar token:', error);
+          await login(AUTH_CREDENTIALS.username, AUTH_CREDENTIALS.password);
+        }
+      } else {
+        // Sem usuário armazenado, tentar login automático
+        await login(AUTH_CREDENTIALS.username, AUTH_CREDENTIALS.password);
+      }
+      
+      setIsInitialized(true);
+    };
+
+    initializeAuth();
   }, []);
 
   const value = {
     user,
     isAuthenticated: !!user,
+    isInitialized,
     login,
     logout,
     updateBalance,
