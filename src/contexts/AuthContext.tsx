@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_URLS, BASIC_AUTH } from '@/config/auth';
+import { API_URLS } from '@/config/auth';
 
 // Default login credentials
 const DEFAULT_CREDENTIALS = {
@@ -24,7 +24,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isInitialized: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username?: string, password?: string) => Promise<boolean>;
   logout: () => void;
   updateBalance: (balance: { real: number; demo: number }) => void;
   checkDepositStatus: () => Promise<void>;
@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username?: string, password?: string): Promise<boolean> => {
     try {
       console.log('🔐 Starting login process...');
       
@@ -60,89 +60,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: '****'
       });
 
-      // Tentar autenticação direta primeiro
-      let response = await fetch(`${API_URLS.auth}/v3/login`, {
+      // Fazer login através do proxy para evitar CORS
+      const response = await fetch('/api/hb/v3/login', {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${BASIC_AUTH}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(loginPayload)
       });
 
-      console.log('📡 API response status:', response.status);
-      console.log('📡 API response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('📡 Response status:', response.status);
       
-      const contentType = response.headers.get('content-type') || '';
-      let data: any = null;
-      
-      if (response.ok && contentType.includes('application/json')) {
-        data = await response.json();
-        console.log('📡 API response data:', {
+      try {
+        const data = await response.json();
+        console.log('📡 Response data:', {
           ...data,
           access_token: data.access_token ? '****' : null,
           refresh_token: data.refresh_token ? '****' : null
         });
-      } else {
-        // Se a resposta não for JSON, tentar ler como texto para debug
+
+        if (response.ok && data?.access_token) {
+          console.log('✅ Login successful!');
+          const newUser: User = {
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+            cognito_id: data.cognito_id,
+            username: loginPayload.username,
+            hasDeposit: false,
+            balance: { real: 0, demo: 10000 }
+          };
+          
+          setUser(newUser);
+          localStorage.setItem('ux_trading_user', JSON.stringify(newUser));
+          
+          // Check deposit status after login
+          await checkDepositStatus();
+          return true;
+        }
+      } catch (parseError) {
+        console.error('❌ Failed to parse response:', parseError);
         const textResponse = await response.text();
-        console.log('📡 API response text:', textResponse.substring(0, 200));
-
-        // Fallback para proxy local se a API direta falhar
-        console.log('🔄 Falling back to proxy...');
-        response = await fetch('/api/hb/v3/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(loginPayload)
-        });
-        
-        console.log('📡 Proxy response status:', response.status);
-        console.log('📡 Proxy response headers:', Object.fromEntries(response.headers.entries()));
-        
-        if (response.ok) {
-          try {
-            data = await response.json();
-            console.log('📡 Proxy response data:', {
-              ...data,
-              access_token: data.access_token ? '****' : null,
-              refresh_token: data.refresh_token ? '****' : null
-            });
-          } catch (e) {
-            console.error('❌ Failed to parse proxy response:', e);
-            const textResponse = await response.text();
-            console.log('📡 Proxy response text:', textResponse.substring(0, 200));
-          }
-        }
+        console.log('📡 Response text:', textResponse.substring(0, 200));
       }
 
-      if (response.ok && data?.access_token) {
-        console.log('✅ Login successful!');
-        const newUser: User = {
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-          cognito_id: data.cognito_id,
-          username: loginPayload.username,
-          hasDeposit: false,
-          balance: { real: 0, demo: 10000 }
-        };
-        
-        setUser(newUser);
-        localStorage.setItem('ux_trading_user', JSON.stringify(newUser));
-        
-        // Check deposit status after login
-        await checkDepositStatus();
-        return true;
-      } else {
-        console.log('❌ Login failed - Status:', response.status);
-        if (data) {
-          console.error('❌ Error response:', data);
-        }
-        return false;
-      }
+      console.log('❌ Login failed');
+      return false;
     } catch (error) {
       console.error('❌ Login error:', error);
       return false;
@@ -166,10 +128,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user?.access_token) return;
 
     try {
-      const response = await fetch(`${API_URLS.wallet}/balance/`, {
+      const response = await fetch('/api/hb-wallet/balance/', {
         headers: {
-          'Authorization': `Bearer ${user.access_token}`,
-          'Accept': 'application/json'
+          'Authorization': `Bearer ${user.access_token}`
         }
       });
 
@@ -182,58 +143,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Check for stored user on app start and try auto-login if needed
+  // Initialize auth
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedUser = localStorage.getItem('ux_trading_user');
-      
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+      try {
+        const storedUser = localStorage.getItem('ux_trading_user');
         
-        // Verificar se o token ainda é válido
-        try {
-          const response = await fetch(`${API_URLS.user}/users/read-user`, {
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          
+          // Verify token validity
+          const response = await fetch('/api/hb-user/users/read-user', {
             headers: {
-              'Authorization': `Bearer ${parsedUser.access_token}`,
-              'Accept': 'application/json'
+              'Authorization': `Bearer ${parsedUser.access_token}`
             }
           });
           
           if (!response.ok) {
-            // Token inválido, tentar fazer login novamente
-            console.log('🔄 Token expirado, tentando re-autenticar...');
-            await login(DEFAULT_CREDENTIALS.username, DEFAULT_CREDENTIALS.password);
+            console.log('🔄 Token expired, attempting re-auth...');
+            await login();
           } else {
             await checkDepositStatus();
           }
-        } catch (error) {
-          console.error('❌ Erro ao verificar token:', error);
-          await login(DEFAULT_CREDENTIALS.username, DEFAULT_CREDENTIALS.password);
+        } else {
+          // No stored user, try auto-login
+          await login();
         }
-      } else {
-        // Sem usuário armazenado, tentar login automático
-        await login(DEFAULT_CREDENTIALS.username, DEFAULT_CREDENTIALS.password);
+      } catch (error) {
+        console.error('❌ Auth initialization error:', error);
+        await login();
+      } finally {
+        setIsInitialized(true);
       }
-      
-      setIsInitialized(true);
     };
 
     initializeAuth();
   }, []);
 
-  const value = {
-    user,
-    isAuthenticated: !!user,
-    isInitialized,
-    login,
-    logout,
-    updateBalance,
-    checkDepositStatus
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
+      isInitialized,
+      login,
+      logout,
+      updateBalance,
+      checkDepositStatus
+    }}>
       {children}
     </AuthContext.Provider>
   );

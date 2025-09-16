@@ -42,11 +42,22 @@ app.use('/api/hb', createProxyMiddleware({
   target: 'https://bot-account-manager-api.homebroker.com',
   changeOrigin: true,
   pathRewrite: { '^/api/hb': '' },
-  onProxyReq: (proxyReq) => {
-    const basic = process.env.HB_BASIC_AUTH || process.env.VITE_HB_BASIC_AUTH || '';
-    if (basic) {
-      proxyReq.setHeader('Authorization', `Basic ${basic}`);
+  onProxyReq: (proxyReq, req, res) => {
+    // Adicionar Basic Auth
+    const basic = process.env.HB_BASIC_AUTH || process.env.VITE_HB_BASIC_AUTH || 'bWluZHNsdGRhQGdtYWlsLmNvbTo1NF1bRGNvJUR4MHs=';
+    proxyReq.setHeader('Authorization', `Basic ${basic}`);
+
+    // Log da requisição
+    console.log(`🔄 Proxy request to ${proxyReq.path}`);
+    if (req.body) {
+      const bodyData = JSON.stringify(req.body);
+      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+      proxyReq.write(bodyData);
     }
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    // Log da resposta
+    console.log(`📡 Proxy response from ${req.path}: ${proxyRes.statusCode}`);
   },
 }));
 
