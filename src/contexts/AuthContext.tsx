@@ -60,11 +60,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: '****'
       });
 
-      // Fazer login através do proxy para evitar CORS
-      const response = await fetch('/api/hb/v3/login', {
+      // Fazer login diretamente na API da HB
+      const response = await fetch('https://bot-account-manager-api.homebroker.com/v3/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Origin': 'https://ux-jc-front.uguzam.easypanel.host'
         },
         body: JSON.stringify(loginPayload)
       });
